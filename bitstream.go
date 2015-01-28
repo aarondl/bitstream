@@ -1,3 +1,4 @@
+// Package bitstream is used to read bits out of an io stream.
 package bitstream
 
 import (
@@ -14,8 +15,7 @@ type Bitstream struct {
 	bits   byte
 }
 
-// NewBitstream wraps the reader in a bufio.Reader.
-func NewBitstream(reader io.Reader) *Bitstream {
+func New(reader io.Reader) *Bitstream {
 	return &Bitstream{
 		offset: 8,
 		reader: bufio.NewReader(reader),
@@ -52,6 +52,12 @@ func (b *Bitstream) Bits(nBits int) (val uint64, err error) {
 	}
 
 	return val, nil
+}
+
+// Byte from the reader.
+func (b *Bitstream) Byte() (byte, error) {
+	bits, err := b.Bits(8)
+	return byte(bits), err
 }
 
 // Bytes from the reader.

@@ -31,7 +31,7 @@ func toBin(s string) byte {
 func TestBitstream_Bits(t *testing.T) {
 	data := []byte{toBin("0000 1111"), toBin("1010 0101"), toBin("1111 0000")}
 
-	b := NewBitstream(bytes.NewBuffer(data))
+	b := New(bytes.NewBuffer(data))
 	var val uint64
 	var err error
 
@@ -72,10 +72,35 @@ func TestBitstream_Bits(t *testing.T) {
 	}
 }
 
+func TestBitstream_Byte(t *testing.T) {
+	data := []byte{0xF0, 0xFF, 0x0F}
+
+	b := New(bytes.NewBuffer(data))
+
+	if _, err := b.Bits(4); err != nil {
+		t.Error(err)
+	}
+
+	if bits, err := b.Byte(); err != nil {
+		t.Error(err)
+	} else if bits != 0xFF {
+		t.Errorf("Value was not correct: % 02X", bits)
+	}
+	if bits, err := b.Byte(); err != nil {
+		t.Error(err)
+	} else if bits != 0xFF {
+		t.Errorf("Value was not correct: % 02X", bits)
+	}
+
+	if _, err := b.Bits(4); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestBitstream_Bytes(t *testing.T) {
 	data := []byte{0xF0, 0xFF, 0x0F}
 
-	b := NewBitstream(bytes.NewBuffer(data))
+	b := New(bytes.NewBuffer(data))
 
 	if _, err := b.Bits(4); err != nil {
 		t.Error(err)
@@ -98,7 +123,7 @@ func TestBitstream_Bytes(t *testing.T) {
 func TestBitstream_BitsInBytes(t *testing.T) {
 	data := []byte{0x00, 0xF0, 0xFF, 0x0F, 0x00}
 
-	b := NewBitstream(bytes.NewBuffer(data))
+	b := New(bytes.NewBuffer(data))
 	var err error
 
 	val := make([]byte, 2)
