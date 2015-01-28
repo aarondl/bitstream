@@ -7,47 +7,47 @@ import (
 	"io"
 )
 
-// Bitstream reads many different types of values outside byte alignments.
-type Bitstream struct {
+// Reader reads many different types of values outside byte alignments.
+type Reader struct {
 	reader *bufio.Reader
 
 	offset uint
 	bits   byte
 }
 
-func New(reader io.Reader) *Bitstream {
-	return &Bitstream{
+func New(reader io.Reader) *Reader {
+	return &Reader{
 		offset: 8,
 		reader: bufio.NewReader(reader),
 	}
 }
 
 // Bits returns the next bits up to a max of 64.
-func (b *Bitstream) Bits(nBits int) (val uint64, err error) {
+func (r *Reader) Bits(nBits int) (val uint64, err error) {
 	if nBits > 64 {
 		panic("Next can only pull back 64 bits at a time.")
 	}
 
 	var bitOffset uint
 	for nBits > 0 {
-		if b.offset == 8 {
-			b.offset = 0
-			b.bits, err = b.reader.ReadByte()
+		if r.offset == 8 {
+			r.offset = 0
+			r.bits, err = r.reader.ReadByte()
 			if err != nil {
 				return val, err
 			}
 		}
 
 		toRead := uint(nBits)
-		if toRead > (8 - b.offset) {
-			toRead = 8 - b.offset
+		if toRead > (8 - r.offset) {
+			toRead = 8 - r.offset
 		}
 
-		var mask byte = ((1 << toRead) - 1) << b.offset
+		var mask byte = ((1 << toRead) - 1) << r.offset
 
-		val |= (uint64(mask&b.bits) >> b.offset) << bitOffset
+		val |= (uint64(mask&r.bits) >> r.offset) << bitOffset
 		bitOffset += toRead
-		b.offset += toRead
+		r.offset += toRead
 		nBits -= int(toRead)
 	}
 
@@ -55,27 +55,29 @@ func (b *Bitstream) Bits(nBits int) (val uint64, err error) {
 }
 
 // Byte from the reader.
-func (b *Bitstream) Byte() (byte, error) {
-	bits, err := b.Bits(8)
+func (r *Reader) Byte() (byte, error) {
+	bits, err := r.Bits(8)
 	return byte(bits), err
 }
 
 // Bytes from the reader.
-func (b *Bitstream) Bytes(dst []byte) error {
+func (r *Reader) Read(dst []byte) (int, error) {
+	n := 0
 	for i := 0; i < len(dst); i++ {
-		bits, err := b.Bits(8)
+		bits, err := r.Bits(8)
 		if err != nil {
-			return err
+			return n, err
 		}
 
 		dst[i] = byte(bits & 0xFF)
+		n++
 	}
 
-	return nil
+	return n, nil
 }
 
-// BitsInBytes returns the number of requested bits inside a byte array.
-func (b *Bitstream) BitsInBytes(dst []byte, nBits int) (err error) {
+// Bytes returns the number of requested bits inside a byte array.
+func (r *Reader) Bytes(dst []byte, nBits int) (err error) {
 	var byteOffset int
 	var bitOffset uint
 
@@ -84,10 +86,10 @@ func (b *Bitstream) BitsInBytes(dst []byte, nBits int) (err error) {
 	}
 
 	for nBits > 0 {
-		if b.offset == 8 {
-			b.offset = 0
+		if r.offset == 8 {
+			r.offset = 0
 
-			b.bits, err = b.reader.ReadByte()
+			r.bits, err = r.reader.ReadByte()
 			if err != nil {
 				return err
 			}
@@ -102,18 +104,18 @@ func (b *Bitstream) BitsInBytes(dst []byte, nBits int) (err error) {
 		if maskSize > (8 - bitOffset) {
 			maskSize = 8 - bitOffset
 		}
-		if maskSize > (8 - b.offset) {
-			maskSize = 8 - b.offset
+		if maskSize > (8 - r.offset) {
+			maskSize = 8 - r.offset
 		}
 		if maskSize > 8 {
 			maskSize = 8
 		}
 
-		var mask byte = ((1 << maskSize) - 1) << b.offset
+		var mask byte = ((1 << maskSize) - 1) << r.offset
 
-		dst[byteOffset] |= ((mask & b.bits) >> b.offset) << bitOffset
+		dst[byteOffset] |= ((mask & r.bits) >> r.offset) << bitOffset
 		bitOffset += maskSize
-		b.offset += maskSize
+		r.offset += maskSize
 		nBits -= int(maskSize)
 	}
 

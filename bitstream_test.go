@@ -2,8 +2,11 @@ package bitstream
 
 import (
 	"bytes"
+	"io"
 	"testing"
 )
+
+var reader io.Reader = &Reader{}
 
 func toBinInt(s string) uint64 {
 	var val uint64
@@ -28,7 +31,7 @@ func toBin(s string) byte {
 	return byte(toBinInt(s))
 }
 
-func TestBitstream_Bits(t *testing.T) {
+func TestReader_Bits(t *testing.T) {
 	data := []byte{toBin("0000 1111"), toBin("1010 0101"), toBin("1111 0000")}
 
 	b := New(bytes.NewBuffer(data))
@@ -72,7 +75,7 @@ func TestBitstream_Bits(t *testing.T) {
 	}
 }
 
-func TestBitstream_Byte(t *testing.T) {
+func TestReader_Byte(t *testing.T) {
 	data := []byte{0xF0, 0xFF, 0x0F}
 
 	b := New(bytes.NewBuffer(data))
@@ -97,7 +100,7 @@ func TestBitstream_Byte(t *testing.T) {
 	}
 }
 
-func TestBitstream_Bytes(t *testing.T) {
+func TestReader_Read(t *testing.T) {
 	data := []byte{0xF0, 0xFF, 0x0F}
 
 	b := New(bytes.NewBuffer(data))
@@ -107,8 +110,10 @@ func TestBitstream_Bytes(t *testing.T) {
 	}
 
 	val := make([]byte, 2)
-	if err := b.BitsInBytes(val, 16); err != nil {
+	if n, err := b.Read(val); err != nil {
 		t.Error(err)
+	} else if n != 2 {
+		t.Error("Number of bytes wrong:", n)
 	}
 
 	if val[0] != 0xFF || val[1] != 0xFF {
@@ -120,34 +125,34 @@ func TestBitstream_Bytes(t *testing.T) {
 	}
 }
 
-func TestBitstream_BitsInBytes(t *testing.T) {
+func TestReader_Bytes(t *testing.T) {
 	data := []byte{0x00, 0xF0, 0xFF, 0x0F, 0x00}
 
 	b := New(bytes.NewBuffer(data))
 	var err error
 
 	val := make([]byte, 2)
-	if err = b.BitsInBytes(val, 12); err != nil {
+	if err = b.Bytes(val, 12); err != nil {
 		t.Error("Unexpected Error:", err)
 	} else if bytes.Compare([]byte{0x00, 0x00}, val) != 0 {
 		t.Errorf("Wrong Value: % 02X", val)
 	}
 
 	val = make([]byte, 3)
-	if err = b.BitsInBytes(val, 22); err != nil {
+	if err = b.Bytes(val, 22); err != nil {
 		t.Error("Unexpected Error:", err)
 	} else if bytes.Compare([]byte{0xFF, 0xFF, 0x00}, val) != 0 {
 		t.Errorf("Wrong Value: % 02X", val)
 	}
 
 	val = make([]byte, 1)
-	if err = b.BitsInBytes(val, 6); err != nil {
+	if err = b.Bytes(val, 6); err != nil {
 		t.Error("Unexpected Error:", err)
 	} else if bytes.Compare([]byte{0x00}, val) != 0 {
 		t.Errorf("Wrong Value: % 02X", val)
 	}
 
-	if err = b.BitsInBytes(val, 6); err == nil {
+	if err = b.Bytes(val, 6); err == nil {
 		t.Error("Expected an overflow error.")
 	}
 }
