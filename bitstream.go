@@ -7,6 +7,10 @@ import (
 	"io"
 )
 
+var (
+	bufferTooSmall = errors.New("bitsinbytes: buffer too small")
+)
+
 // Reader reads many different types of values outside byte alignments.
 type Reader struct {
 	reader *bufio.Reader
@@ -25,7 +29,7 @@ func New(reader io.Reader) *Reader {
 // Bits returns the next bits up to a max of 64.
 func (r *Reader) Bits(nBits int) (val uint64, err error) {
 	if nBits > 64 {
-		panic("Next can only pull back 64 bits at a time.")
+		panic("Can only read 64 bits at a time.")
 	}
 
 	var bitOffset uint
@@ -56,12 +60,20 @@ func (r *Reader) Bits(nBits int) (val uint64, err error) {
 
 // Byte from the reader.
 func (r *Reader) Byte() (byte, error) {
+	if r.offset == 8 {
+		return r.reader.ReadByte()
+	}
+
 	bits, err := r.Bits(8)
 	return byte(bits), err
 }
 
 // Bytes from the reader.
 func (r *Reader) Read(dst []byte) (int, error) {
+	if r.offset == 8 {
+		return r.reader.Read(dst)
+	}
+
 	n := 0
 	for i := 0; i < len(dst); i++ {
 		bits, err := r.Bits(8)
@@ -82,7 +94,7 @@ func (r *Reader) Bytes(dst []byte, nBits int) (err error) {
 	var bitOffset uint
 
 	if len(dst) < (nBits+7)/8 {
-		return errors.New("bitsinbytes: buffer too small")
+		return bufferTooSmall
 	}
 
 	for nBits > 0 {
@@ -106,9 +118,6 @@ func (r *Reader) Bytes(dst []byte, nBits int) (err error) {
 		}
 		if maskSize > (8 - r.offset) {
 			maskSize = 8 - r.offset
-		}
-		if maskSize > 8 {
-			maskSize = 8
 		}
 
 		var mask byte = ((1 << maskSize) - 1) << r.offset
