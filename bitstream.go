@@ -68,10 +68,19 @@ func (r *Reader) Byte() (byte, error) {
 	return byte(bits), err
 }
 
-// Bytes from the reader.
+// Read whole bytes from the reader.
 func (r *Reader) Read(dst []byte) (int, error) {
 	if r.offset == 8 {
-		return r.reader.Read(dst)
+		ret, err := r.reader.Read(dst)
+
+		// bufio doesn't fill it's buffer until it's completely empty.
+		// if a short read happens with no error: retry.
+		if err == nil && len(dst) != ret {
+			again, e := r.reader.Read(dst[ret:])
+			return again + ret, e
+		}
+
+		return ret, err
 	}
 
 	n := 0

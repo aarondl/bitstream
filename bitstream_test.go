@@ -216,3 +216,28 @@ func TestReader_BytesPanic(t *testing.T) {
 		t.Error("Expected bufferTooSmall:", err)
 	}
 }
+
+func TestReader_FastPathError(t *testing.T) {
+	data := make([]byte, 4097)
+	buf := make([]byte, 4095)
+
+	b := New(bytes.NewBuffer(data))
+
+	if n, err := b.Read(buf); err != nil {
+		t.Error(err)
+	} else if n != 4095 {
+		t.Error("Didn't read 4095:", n)
+	}
+
+	if n, err := b.Read(buf); err != nil {
+		t.Error(err)
+	} else if n != 2 {
+		t.Error("Didn't read 2:", n)
+	}
+
+	if n, err := b.Read(buf); err != io.EOF {
+		t.Error("Reader should be finished:", err)
+	} else if n != 0 {
+		t.Error("N should be 0:", n)
+	}
+}
