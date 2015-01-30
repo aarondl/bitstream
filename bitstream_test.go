@@ -269,3 +269,52 @@ func TestReader_FastPathError(t *testing.T) {
 		t.Error("N should be 0:", n)
 	}
 }
+
+func TestReader_BitsHigh(t *testing.T) {
+	data := []byte{toBin("0000 0000"), toBin("0001 1001")}
+
+	b := NewShiftUp(bytes.NewBuffer(data))
+
+	if val, err := b.Bits(5); err != nil {
+		t.Error(err)
+	} else if val != 0x0 {
+		t.Error("Wrong value:", val)
+	}
+
+	if val, err := b.Bits(7); err != nil {
+		t.Error(err)
+	} else if val != 0x9 {
+		t.Error("Wrong value:", val)
+	}
+
+	if val, err := b.Bits(4); err != nil {
+		t.Error(err)
+	} else if val != 0x1 {
+		t.Error("Wrong value:", val)
+	}
+}
+
+func TestReader_BytesHigh(t *testing.T) {
+	data := []byte{toBin("0000 0000"), toBin("0001 1001"), toBin("1010 0101")}
+
+	b := NewShiftUp(bytes.NewBuffer(data))
+
+	if val, err := b.Bits(5); err != nil {
+		t.Error(err)
+	} else if val != 0x0 {
+		t.Error("Wrong value:", val)
+	}
+
+	buf := []byte{0x00, 0x00}
+	if err := b.Bytes(buf[:1], 7); err != nil {
+		t.Error(err)
+	} else if buf[0] != 0x9 {
+		t.Error("Wrong value:", buf[0])
+	}
+
+	if err := b.Bytes(buf, 12); err != nil {
+		t.Error(err)
+	} else if buf[0] != 0x15 || buf[1] != 0xA {
+		t.Errorf("Wrong values: % 02X", buf[0])
+	}
+}
