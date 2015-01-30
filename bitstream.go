@@ -26,6 +26,11 @@ func New(reader io.Reader) *Reader {
 	}
 }
 
+// Align discards the rest of the current byte's bits and byte-aligns the reader.
+func (r *Reader) Align() {
+	r.offset = 8
+}
+
 // Bits returns the next bits up to a max of 64.
 func (r *Reader) Bits(nBits int) (val uint64, err error) {
 	if nBits > 64 {

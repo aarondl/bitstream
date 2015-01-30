@@ -217,6 +217,34 @@ func TestReader_BytesPanic(t *testing.T) {
 	}
 }
 
+func TestReader_Align(t *testing.T) {
+	data := []byte{toBin("0000 1111"), toBin("0000 0101"), toBin("1111 0000")}
+
+	b := New(bytes.NewBuffer(data))
+
+	if val, err := b.Bits(4); err != nil {
+		t.Error(err)
+	} else if val != 0xF {
+		t.Error("Wrong value:", val)
+	}
+
+	b.Align()
+
+	if val, err := b.Bits(3); err != nil {
+		t.Error(err)
+	} else if val != 0x5 {
+		t.Error("Wrong value:", val)
+	}
+
+	b.Align()
+
+	if val, err := b.Byte(); err != nil {
+		t.Error(err)
+	} else if val != 0xF0 {
+		t.Error("Wrong value:", val)
+	}
+}
+
 func TestReader_FastPathError(t *testing.T) {
 	data := make([]byte, 4097)
 	buf := make([]byte, 4095)
